@@ -1,7 +1,7 @@
 # youtube_client
 This is the same library as pytube but with slightly more functionality.
 
-**do not guarantee backward compatibility before the release**
+**I do not guarantee backward compatibility before the release**
 
 ### Features
 - Download video and audio
