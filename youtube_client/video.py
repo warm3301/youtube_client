@@ -21,7 +21,7 @@ def get_embed_url(id:str)->str:
 def get_video_object_from_short(url:str)->"Video":
     return Video(id=extract.short_id(url))
 class Video(BaseYoutubePlayer):
-    def __init__(self,id:str=None,url:str=None):
+    def __init__(self,url:str=None,id:str=None):
         """
         Args:
             id (str, optional): id of video. Defaults to None.

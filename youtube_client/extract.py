@@ -285,6 +285,13 @@ def video_id(value):
             return query.path.split('/')[2]
     #fail
     return None
+def post_id(url:str)->Optional[str]:
+    query = urllib.parse.urlparse(url)
+    if query.hostname in ('www.youtube.com', 'youtube.com'):
+        if query.path[:6] == '/post/':
+            return query.path.split('/')[2]
+    #fail
+    return None
 def short_id(url: str) -> str:
      return regex_search(r"(?:\/shorts\/)([0-9A-Za-z_-]{11}).*", url, group=1)
 

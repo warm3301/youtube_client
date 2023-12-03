@@ -17,6 +17,7 @@ This is the same library as pytube but with slightly more functionality.
 ```
 from youtube_client import Video
 from youtube_client.downloaders import SingleDownlower
+
 v = Video(url="https://youtube.com/watch?v=jNQXAC9IVRw")
 print(v.title)
 
@@ -27,5 +28,6 @@ def progress(obj,bytes,receive):
 stream = v.streams.get_progressive().get_highest_resolution()
 dwnl = SingleDownlower(stream,on_progress=progress)
 file_path = dwnl.download()
+
 print(f"downloaded to {file_path}")
 ```

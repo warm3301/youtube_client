@@ -361,7 +361,7 @@ class Channel(BaseYoutube):
             continuation = raw[-1]["continuationItemRenderer"]["continuationEndpoint"][
                 "continuationCommand"]["token"]
             raw = raw[:-1]
-        return [PostThread(x["backstagePostThreadRenderer"]["post"][
+        return [PostThread(url=None,raw=x["backstagePostThreadRenderer"]["post"][
             "backstagePostRenderer"]) for x in raw],continuation
 
     def get_posts(self)->Iterator[List[PostThread]]:
