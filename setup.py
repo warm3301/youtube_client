@@ -16,7 +16,7 @@ setup(
     version=__version__,  # noqa: F821
     author="warm3301",
     packages=["youtube_client"],
-    package_data={"": ["LICENSE"]},#TODO MIT
+    package_data={"": ["LICENSE"]},
     license="The Unlicense (Unlicense)",
     description=("Python 3 library for downloading YouTube Videos."),
     include_package_data=True,
