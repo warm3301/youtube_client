@@ -15,11 +15,6 @@ from . import innertube
 from . import short
 from .query import get_thumbnails_from_raw,ThumbnailQuery
 
-class GetBy(enum.Enum):
-    """Sort type items in channel"""
-    new = 0
-    top = 1
-    old = 2
 class Link:
     def __init__(self,raw):
         self.raw = raw
@@ -318,9 +313,14 @@ class Channel(BaseYoutube):
     def subscribers_count(self) -> str:
         return self._tabbed_renderer["subscriberCountText"]["simpleText"]
     
+    def _get_other_continuation_token(self,tab_content:dict,index:int):
+        return tab_content["content"]["richGridRenderer"]["header"]["feedFilterChipBarRenderer"]["contents"][index][
+            "chipCloudChipRenderer"]["navigationEndpoint"]["continuationCommand"]["token"]
+        #playlist
+        # continuation = self.tab_content_playlists["content"]["sectionListRenderer"]["subMenu"]["channelSubMenuRenderer"][
+        #         "sortSetting"]["sortFilterSubMenuRenderer"]["subMenuItems"][sort_by]["navigationEndpoint"]
 
-    #TODO other continuation new,top,old
-    def _extract_videos_from_raw(self,raw_videos:List[dict])->([Video],str):
+    def _extract_videos_from_raw(self,raw_videos:List[dict])->(List[VideoResult],str):
         vids = []
         continuation = None
         if "continuationItemRenderer" in raw_videos[-1]:
@@ -332,12 +332,27 @@ class Channel(BaseYoutube):
             vids.append(VideoResult(vr))
         return vids,continuation
 
-    @property
-    def _other_video_continuation(self):
-        return self.tab_content_videos["content"]["richGridRenderer"]["header"]["feedFilterChipBarRenderer"]["contents"]
-    
-    def get_videos(self)->Iterator[List[Video]]:
-        videos,continuation = self._extract_videos_from_raw(self.tab_content_videos["content"][
+    def get_videos(self,sort_by:Optional[int]=None)->Iterator[List[VideoResult]]:
+        """
+        get videos on channel
+        Args:
+            sort_by (Optional[int], optional): 0 - new, 1 - top, 2 - old. Defaults to None - new (default by youtube).
+
+        Yields:
+            List[VideoResult]: You can get video.Video call function get_full_obj in VideoResult object
+        """        
+        videos:List[VideoResult] = None
+        continuation:str = None
+        if sort_by:
+            res = innertube.default_obj.browse(browse_id=None,continuation=self._get_other_continuation_token(self.tab_content_videos,sort_by))
+            if len(res["onResponseReceivedActions"]) == 1:
+                videos,continuation = self._extract_videos_from_raw(res["onResponseReceivedActions"][0][
+                    "appendContinuationItemsAction"]["continuationItems"])
+            else:
+                videos,continuation = self._extract_videos_from_raw(res["onResponseReceivedActions"][1][
+                    "reloadContinuationItemsCommand"]["continuationItems"])
+        else:
+            videos,continuation = self._extract_videos_from_raw(self.tab_content_videos["content"][
                 "richGridRenderer"]["contents"])
         yield videos
         if continuation == None:
@@ -398,9 +413,27 @@ class Channel(BaseYoutube):
             renderer = x["richItemRenderer"]["content"]["reelItemRenderer"]
             shorts.append(ShortResult(renderer))
         return shorts,continuation
-    def get_shorts(self)->Iterator[short.Short]:
-        shorts, continuation = self._extract_shorts_from_raw(self.tab_content_shorts["content"]["richGridRenderer"]["contents"])
-        i = 0
+    def get_shorts(self,sort_by:Optional[int]=None)->Iterator[short.Short]:
+        """
+        get short videos on channel
+        Args:
+            sort_by (Optional[int], optional): 0 - new, 1 - top. Defaults to None - new (default by youtube).
+
+        Yields:
+            List[ShortResult]: You can get short.Short call function get_full_obj in ShortResult object
+        """
+        shorts:List[ShortResult] = None
+        continuation:str = None
+        if sort_by:
+            res = innertube.default_obj.browse(browse_id=None,continuation=self._get_other_continuation_token(self.tab_content_shorts,sort_by))
+            if len(res["onResponseReceivedActions"]) == 1:
+                shorts,continuation = self._extract_shorts_from_raw(res["onResponseReceivedActions"][0][
+                    "appendContinuationItemsAction"]["continuationItems"])
+            else:
+                shorts,continuation = self._extract_shorts_from_raw(res["onResponseReceivedActions"][1][
+                    "reloadContinuationItemsCommand"]["continuationItems"])
+        else:
+            shorts, continuation = self._extract_shorts_from_raw(self.tab_content_shorts["content"]["richGridRenderer"]["contents"])
         yield shorts
         if continuation == None:
             return
@@ -416,7 +449,7 @@ class Channel(BaseYoutube):
             yield shorts
 
         
-    def _extract_lives_from_raw(self,raw:List[dict])->(List[Live],Optional[str]):
+    def _extract_lives_from_raw(self,raw:List[dict])->(List[LiveResult],Optional[str]):
         continuation = None
         if "continuationItemRenderer" in raw[-1]:
             continuation = raw[-1]["continuationItemRenderer"]["continuationEndpoint"]["continuationCommand"]["token"]#BROWSE
@@ -426,8 +459,27 @@ class Channel(BaseYoutube):
             renderer = x["richItemRenderer"]["content"]["videoRenderer"]
             lives.append(LiveResult(renderer))
         return lives,continuation
-    def get_lives(self)->Iterator[List[Live]]:
-        lives,continuation = self._extract_lives_from_raw(self.tab_content_lives["content"]["richGridRenderer"]["contents"])
+    def get_lives(self,sort_by:Optional[int]=None)->Iterator[List[LiveResult]]:
+        """
+        get lives on channel
+        Args:
+            sort_by (Optional[int], optional): 0 - new, 1 - top, 2 - old. Defaults to None - new (default by youtube).
+
+        Yields:
+            List[LiveResult]: You can get live.Live call function get_full_obj in LiveResult object
+        """
+        lives:List[LiveResult] = None
+        continuation:str = None
+        if sort_by:
+            res = innertube.default_obj.browse(browse_id=None,continuation=self._get_other_continuation_token(self.tab_content_lives,sort_by))
+            if len(res["onResponseReceivedActions"]) == 1:
+                lives,continuation = self._extract_lives_from_raw(res["onResponseReceivedActions"][0][
+                    "appendContinuationItemsAction"]["continuationItems"])
+            else:
+                lives,continuation = self._extract_lives_from_raw(res["onResponseReceivedActions"][1][
+                    "reloadContinuationItemsCommand"]["continuationItems"])
+        else:
+            lives,continuation = self._extract_lives_from_raw(self.tab_content_lives["content"]["richGridRenderer"]["contents"])
         yield lives
         if continuation == None:
             return
@@ -473,7 +525,7 @@ class Channel(BaseYoutube):
             renderer = x["gridPlaylistRenderer"]
             pl_objs.append(PlaylistResult(renderer))
         return pl_objs,continuation
-    def get_playlists(self)->Iterator[List[Playlist]]:
+    def get_playlists(self)->Iterator[List[PlaylistResult]]:
         playlists,continuation = self._extract_playlists_from_raw(self.tab_content_playlists["content"]["sectionListRenderer"]["contents"][0]["itemSectionRenderer"][
             "contents"][0]["gridRenderer"]["items"])
         yield playlists
