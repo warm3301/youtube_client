@@ -1,4 +1,4 @@
-from typing import Iterator,List,Optional,Iterable
+from typing import Iterator,List,Optional,Iterable,Union
 from functools import cached_property
 from abc import abstractmethod,ABC
 import enum
@@ -10,7 +10,7 @@ from . import thumbnail
 from .playlist import Playlist
 from .video import Video
 from .live import Live
-from .post import PostThread
+from . import post
 from . import innertube
 from . import short
 from .query import get_thumbnails_from_raw,ThumbnailQuery
@@ -266,9 +266,6 @@ class Channel(BaseYoutube):
     def unlisted(self)->bool:
         return self._second_inital_data["microformat"]["microformatDataRenderer"]["unlisted"]
     @property
-    def tags(self)->List[str]:
-        return self._second_inital_data["microformat"]["microformatDataRenderer"]["tags"]
-    @property
     def available_country_codes(self) ->List[str]:
         return self._metadata_renderer["availableCountryCodes"]
 
@@ -317,7 +314,7 @@ class Channel(BaseYoutube):
         return tab_content["content"]["richGridRenderer"]["header"]["feedFilterChipBarRenderer"]["contents"][index][
             "chipCloudChipRenderer"]["navigationEndpoint"]["continuationCommand"]["token"]
         #playlist
-        # continuation = self.tab_content_playlists["content"]["sectionListRenderer"]["subMenu"]["channelSubMenuRenderer"][
+        # url = self.tab_content_playlists["content"]["sectionListRenderer"]["subMenu"]["channelSubMenuRenderer"][
         #         "sortSetting"]["sortFilterSubMenuRenderer"]["subMenuItems"][sort_by]["navigationEndpoint"]
 
     def _extract_videos_from_raw(self,raw_videos:List[dict])->(List[VideoResult],str):
@@ -370,21 +367,21 @@ class Channel(BaseYoutube):
 
 
 
-    def _extract_posts_from_raw(self,raw:List[dict])->(List[PostThread],Optional[str]): 
+    def _extract_posts_from_raw(self,raw:List[dict])->(List[Union[post.PostShared,post.PostThread]],Optional[str]): 
         continuation = None
         if "continuationItemRenderer" in raw[-1]:
             continuation = raw[-1]["continuationItemRenderer"]["continuationEndpoint"][
                 "continuationCommand"]["token"]
             raw = raw[:-1]
-        return [PostThread(url=None,raw=x["backstagePostThreadRenderer"]["post"][
-            "backstagePostRenderer"]) for x in raw],continuation
-
-    def get_posts(self)->Iterator[List[PostThread]]:
+        return [post._get_post_from_may_shared_raw(x["backstagePostThreadRenderer"]["post"]) for x in raw],continuation
+    def get_posts(self)->Iterator[List[Union[post.PostShared,post.PostThread]]]:
         cont = self.tab_content_community["content"]["sectionListRenderer"]["contents"][0][
             "itemSectionRenderer"]["contents"]
-        if "messageRenderer" in cont[0]:
-            return
+        # if "messageRenderer" in cont[0]:
+        #     return
         posts,continuation = self._extract_posts_from_raw(cont)
+        if posts and len(posts):
+            yield posts
         it = innertube.default_obj
         while continuation:
             #sometimes browse return result with 0 items and also contains continuation token.

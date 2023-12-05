@@ -14,7 +14,6 @@ from .storyboard import Storyboard
 from .captions import Caption
 from .streams import Stream
 from .comments import Comment
-from .post import PostThread
 from .comments import CommentGetter,Comment,CommentsResponce,CommentThread,TeaserComment
 from .query import CaptionQuery,StreamQuery,ThumbnailQuery
 from .search import Search,SearchResponce

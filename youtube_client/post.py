@@ -5,6 +5,7 @@ from . import innertube
 from . import extract
 from .comments import CommentGetter
 from .query import get_thumbnails_from_raw,ThumbnailQuery
+from abc import ABC,abstractproperty
 def get_post_url(id:str)->str:
     return f"https://www.youtube.com/post/{id}"
 class PoolAttachmentChoice:
@@ -52,27 +53,40 @@ class VideoAttachment:
         
     def __repr__(self)->str:
         return f"<VideoPostAttachment {self.video_id} {self.title=}/>"
-class PostThread(BaseYoutube):
-    def __init__(self,url:str=None,id:str=None,raw:dict=None):
-        if url == None and id and raw ==None:
-            raise Exception("url and id is None")
-        self._post_raw = raw
+
+class PostBase(ABC):
+    def __init__(self,raw:dict,default_initial_data:dict=None):
+        self.raw = raw
+        self.initial_data = default_initial_data
         #TODO from url
         #contents.twoColumnBrowseResultsRenderer.tabs.0.tabRenderer.content.sectionListRenderer.contents.0.itemSectionRenderer.contents.0.backstagePostThreadRenderer
         #contents.twoColumnBrowseResultsRenderer.tabs.0.tabRenderer.content.sectionListRenderer.contents.1.itemSectionRenderer.contents.0.
         #continuationItemRenderer.continuationEndpoint.continuationCommand.token
 
-        self.id:str = raw["postId"] if raw else extract.post_id(url) if url else id
+        self.id:str = raw["postId"]
         self.url:str = get_post_url(self.id)
-        super().__init__(get_post_url(self.id))
+    def get_comments_getter(self)->CommentGetter:#TODO reuse commentGetter object
+        if not self.initial_data:
+            self.initial_data = BaseYoutube(self.url).initial_data
+        return CommentGetter(self.initial_data["contents"]["twoColumnBrowseResultsRenderer"]["tabs"][0][
+            "tabRenderer"]["content"]["sectionListRenderer"]["contents"][1]["itemSectionRenderer"][
+                "contents"][0]["continuationItemRenderer"]["continuationEndpoint"]["continuationCommand"]["token"],browse=True)
+    @abstractproperty
+    def content(self)->str:...
+    @abstractproperty
+    def author_name(self)->str:...
+    @abstractproperty
+    def author_id(self)->str:...
+    @abstractproperty
+    def author_url(self)->str:...
     @property
-    def raw(self)->dict:
-        if self._post_raw:
-            return self._post_raw
-        self._post_raw = self.initial_data["contents"]["twoColumnBrowseResultsRenderer"]["tabs"][0][
-            "tabRenderer"]["content"]["sectionListRenderer"]["contents"][0]["itemSectionRenderer"][
-                "contents"][0]["backstagePostThreadRenderer"]["post"]["backstagePostRenderer"]
-        return self._post_raw
+    def published_time(self)->str:
+        return self.raw["publishedTimeText"]["runs"][0]["text"]
+
+class PostThread(PostBase):
+    def __init__(self,raw:dict,comments_getter_method=None,default_initial_data:dict=None):#TODO comments_getter_method Callable ->  CommentGetter
+        self._comment_getter_method=comments_getter_method
+        super().__init__(raw,default_initial_data)
     @property
     def content(self)->str:
         return " ".join([x["text"] for x in (self.raw["contentText"]["runs"] if "runs" in self.raw["contentText"] else self.raw["contentText"]) ])
@@ -94,9 +108,6 @@ class PostThread(BaseYoutube):
     @property
     def vote_count(self)->str:
         return self.raw["voteCount"]["simpleText"]
-    @property
-    def published_time(self)->str:
-        return self.raw["publishedTimeText"]["runs"][0]["text"]
     @property
     def surface(self)->str:
         return self.raw["surface"]
@@ -122,30 +133,69 @@ class PostThread(BaseYoutube):
     @property
     def dislike_is_disabled(self)->bool:
         return self._dislike_info["isDisabled"]
-    # @property
-    # def _replies_info(self)->Optional[dict]:
-    #     btns = self.raw["actionButtons"]["commentActionButtonsRenderer"]
-    #     return btns["replyButton"]["buttonRenderer"] if "replyButton" in btns else None
-    # @property
-    # def replies_count(self)->str:
-    #     return self._replies_info["text"]["simpleText"]#text.accessibility.accessibilityData.label
     @property
     def attachment(self) ->Optional[Union[VideoAttachment,PoolAttachment]]:
-        if not "backstageAttachment" in self._post_raw:
+        if not "backstageAttachment" in self.raw:
             return None
-        at = self._post_raw["backstageAttachment"]
+        at = self.raw["backstageAttachment"]
         if "backstageImageRenderer" in at:
             return get_thumbnails_from_raw(at["backstageImageRenderer"]["image"]["thumbnails"])
         elif "videoRenderer" in at:
             return VideoAttachment(at["videoRenderer"])
         elif "pollRenderer" in at:
-            return PoolAttachment(at["pollRenderer"],self._post_raw["pollStatus"])
+            return PoolAttachment(at["pollRenderer"],self.raw["pollStatus"])
         else:
             NotImplemented
         return None
-    def get_comments_getter(self):
-        return CommentGetter(self.initial_data["contents"]["twoColumnBrowseResultsRenderer"]["tabs"][0][
-            "tabRenderer"]["content"]["sectionListRenderer"]["contents"][1]["itemSectionRenderer"][
-                "contents"][0]["continuationItemRenderer"]["continuationEndpoint"]["continuationCommand"]["token"],browse=True)
+    def get_comments_getter(self)->CommentGetter:
+        if self._comment_getter_method:
+            return self._comment_getter_method()
+        return super().get_comments_getter()
     def __repr__(self)->str:
-        return f"<Post {self.published_time} content=\"{self.content[:125]}...\"/>"
+        return f"<PostThread {self.published_time} content=\"{self.content[:125]}...\"/>"
+
+class PostShared(PostBase):
+    def __init__(self,raw:dict,default_initial_data:dict=None):
+        super().__init__(raw,default_initial_data)
+    def __repr__(self)->str:
+        return f"<PostShared \"{self.content[:50]}...\"  add to post \"{self.get_source().content[:50]}...\" />"
+    @property
+    def source_id(self)->str:
+        return self.raw["originalPost"]["backstagePostRenderer"]["postId"]
+    @property
+    def source_url(self)->str:
+        return get_post_url(id=self.source_id)
+    def get_source(self)->PostThread:
+        """
+        From shared info and content
+        """
+        return PostThread(self.raw["originalPost"]["backstagePostRenderer"],lambda : self.get_comments_getter())
+    @property
+    def content(self)->str:
+        return " ".join([x["text"] for x in self.raw["content"]["runs"]])
+    @property
+    def author_name(self)->str:
+        return self.raw["displayName"]["runs"][0]["text"]
+    @property
+    def author_id(self)->str:
+        return self.raw["displayName"]["runs"][0]["navigationEndpoint"]["browseEndpoint"]["browseId"]
+    @property
+    def author_url(self)->str:
+        return "https://youtube.com" + self.raw["displayName"]["runs"][0]["navigationEndpoint"]["browseEndpoint"]["canonicalBaseUrl"]
+    @property
+    def thumbnails(self)->ThumbnailQuery:#TODO author_thumbnails?
+        return get_thumbnails_from_raw(self.raw["thumbnail"]["thumbnails"])
+
+
+def _get_post_from_may_shared_raw(raw:dict,default_initial_data:dict=None)->Union[PostShared,PostThread]:
+    if "sharedPostRenderer" in raw:
+        return PostShared(raw = raw["sharedPostRenderer"],default_initial_data=default_initial_data)
+    else:
+        return PostThread(raw = raw["backstagePostRenderer"],default_initial_data=default_initial_data)
+def get_post_by_url(url:str)->Union[PostShared,PostThread]:
+    r = BaseYoutube(url).initial_data
+    post_raw = r["contents"]["twoColumnBrowseResultsRenderer"]["tabs"][0][
+            "tabRenderer"]["content"]["sectionListRenderer"]["contents"][0][
+            "itemSectionRenderer"]["contents"][0]["backstagePostThreadRenderer"]["post"]
+    post = _get_post_from_may_shared_raw(post_raw,r)
+    return post
