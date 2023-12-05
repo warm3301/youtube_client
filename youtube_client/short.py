@@ -31,3 +31,7 @@ class Short(video.Video):
     @cached_property
     def short_initial_data(self)->dict:
         return extract.initial_data(self.short_html)
+    @property
+    def likes_count_int(self)->int:
+        return self.short_initial_data["overlay"]["reelPlayerOverlayRenderer"]["likeButton"]["likeButtonRenderer"]["likeCount"]
+

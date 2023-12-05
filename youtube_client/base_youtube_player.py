@@ -266,7 +266,7 @@ class BaseYoutubePlayer(BaseYoutube):
                 break
         if hcvr == None or len(hcvr["cards"])==0 or "macroMarkersListItemRenderer" in hcvr["cards"][0]:
             return None
-        _ = hcvr["header"]["richListHeaderRenderer"]["title"]["simpleText"] #music? #epi
+        _ = hcvr["header"]["richListHeaderRenderer"]["title"]["simpleText"]
         count = None
         try:
             count = hcvr["header"]["richListHeaderRenderer"]["subtitle"]["simpleText"]
@@ -280,11 +280,15 @@ class BaseYoutubePlayer(BaseYoutube):
         subtitle = card["subtitle"]
         secondary_subtitle = card["secondarySubtitle"]["content"]
         thumbnail = Thumbnail(card["image"]["sources"][0]["url"])
-        all_info = " ".join([x["text"] for x in card["overflowMenuOnTap"]["innertubeCommand"]["confirmDialogEndpoint"]["content"][
-            "confirmDialogRenderer"]["dialogMessages"][0]['runs']])
         owner_id = hcvr["footerButton"]["buttonViewModel"]["onTap"]["innertubeCommand"]["browseEndpoint"]["browseId"]          
         #footerButton.buttonViewModel.titleFormatted.content 'music'
         owner_url = hcvr["footerButton"]["buttonViewModel"]["onTap"]["innertubeCommand"]["commandMetadata"]["webCommandMetadata"]["url"]
+
+        all_info = None
+        dmessages = card["overflowMenuOnTap"]["innertubeCommand"]["confirmDialogEndpoint"]["content"][
+            "confirmDialogRenderer"]["dialogMessages"][0]
+        if dmessages and len(dmessages)>0:
+            all_info = " ".join([x["text"] for x in  dmessages['runs']])
         return MusicMetadata(title,orientation,sizingRule,subtitle,secondary_subtitle,thumbnail,all_info,owner_id)
     
     @cached_property
