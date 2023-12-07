@@ -21,7 +21,17 @@ from functools import cached_property
 from .music_metadata import MusicMetadata
 _js = None
 _js_url = None
-
+class VideoCategory:
+    def __init__(self,raw):
+        self.raw = raw
+        self.title:str = " ".join(x["text"] for x in raw["title"]["runs"]) if "runs" in raw["title"] else raw["title"]["simpleText"]
+        self.url:str = "https://youtube.com" + raw["endpoint"]["commandMetadata"]["webCommandMetadata"]["url"]
+        self.browse_id:str = raw["endpoint"]["browseEndpoint"]["browseId"]
+    @property
+    def thumbnails(self)->ThumbnailQuery:
+        return get_thumbnails_from_raw(self.raw["thumbnail"]["thumbnails"])
+    def __repr__(self)->str:
+        return f"<VideoCategory {self.title}/>"
 class AudioTrack:
     def __init__(self,raw,streams:StreamQuery):
         self.raw = raw
@@ -326,10 +336,29 @@ class BaseYoutubePlayer(BaseYoutube):
         mrkr = self.initial_data["contents"]["twoColumnWatchNextResults"]["results"]["results"]["contents"][1]["videoSecondaryInfoRenderer"][
             "metadataRowContainer"]["metadataRowContainerRenderer"]
         if not "rows" in mrkr:
-            return False
-        value = mrkr["rows"][0]["metadataRowRenderer"]["contents"][0]["runs"][0]
-        return (value["text"],value["navigationEndpoint"][
+            return None
+        for row in mrkr["rows"]:
+            try:
+                value = row["metadataRowRenderer"]["contents"][0]["runs"][0]
+                return (value["text"],value["navigationEndpoint"][
                 "urlEndpoint"]["url"])
+            except KeyError:
+                return None
+    @property
+    def video_category(self)->List[VideoCategory]:
+        categories = []
+        mrkr = self.initial_data["contents"]["twoColumnWatchNextResults"]["results"]["results"]["contents"][1]["videoSecondaryInfoRenderer"][
+            "metadataRowContainer"]["metadataRowContainerRenderer"]
+        if not "rows" in mrkr:
+            return categories
+        mrkr = mrkr["rows"][0]
+        if not "richMetadataRowRenderer" in mrkr:
+            return categories
+        for raw in mrkr["richMetadataRowRenderer"]["contents"]:
+            categories.append(VideoCategory(raw["richMetadataRenderer"]))
+        return categories
+
+
     
     @property
     def was_live(self)->bool:

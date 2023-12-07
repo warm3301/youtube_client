@@ -302,7 +302,7 @@ class Video(BaseYoutubePlayer):
         try:
             return self.initial_data["contents"]["twoColumnWatchNextResults"]["results"]["results"]["contents"][1][
                 "videoSecondaryInfoRenderer"]["metadataRowContainer"]["metadataRowContainerRenderer"][
-                    "rows"][0]["metadataRowRenderer"]["contents"]["0"]["simpleText"] #"Explicit lyrics"
+                    "rows"][0]["metadataRowRenderer"]["contents"][0]["simpleText"] #"Explicit lyrics"
         except KeyError:
             return None
     @cached_property

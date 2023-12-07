@@ -5,7 +5,7 @@ This is the same library as pytube but with slightly more functionality.
 
 ### Features
 - Download video and audio
-- Get storyboards (with PIL), cards, chapters in videos
+- Get storyboards (by PIL), cards, chapters in videos
 - Get info about video, short, live, playlist, channel
 - Get videos, shorts, lives, playlists, posts from channel
 - Get comments
