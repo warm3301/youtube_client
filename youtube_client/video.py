@@ -8,6 +8,7 @@ from .query import ThumbnailQuery,get_thumbnails_from_raw
 from .base_youtube_player import BaseYoutubePlayer
 from . import storyboard
 from . import comments
+from .thumbnail import Thumbnail
 from .streams import Stream
 from .chapter import Chapter
 from .endscreen_panel import Endscreen
