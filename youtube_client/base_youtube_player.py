@@ -21,17 +21,6 @@ from functools import cached_property
 from .music_metadata import MusicMetadata
 _js = None
 _js_url = None
-class VideoCategory:
-    def __init__(self,raw):
-        self.raw = raw
-        self.title:str = " ".join(x["text"] for x in raw["title"]["runs"]) if "runs" in raw["title"] else raw["title"]["simpleText"]
-        self.url:str = "https://youtube.com" + raw["endpoint"]["commandMetadata"]["webCommandMetadata"]["url"]
-        self.browse_id:str = raw["endpoint"]["browseEndpoint"]["browseId"]
-    @property
-    def thumbnails(self)->ThumbnailQuery:
-        return get_thumbnails_from_raw(self.raw["thumbnail"]["thumbnails"])
-    def __repr__(self)->str:
-        return f"<VideoCategory {self.title}/>"
 class AudioTrack:
     def __init__(self,raw,streams:StreamQuery):
         self.raw = raw

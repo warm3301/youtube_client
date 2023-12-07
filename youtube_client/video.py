@@ -1,4 +1,4 @@
-from typing import Optional,List
+from typing import Optional,List,Tuple
 from functools import cached_property
 
 from . import request
@@ -20,6 +20,17 @@ def get_embed_url(id:str)->str:
     return f"https://www.youtube.com/embed/{id}"
 def get_video_object_from_short(url:str)->"Video":
     return Video(id=extract.short_id(url))
+class VideoCategory:
+    def __init__(self,raw):
+        self.raw = raw
+        self.title:str = " ".join(x["text"] for x in raw["title"]["runs"]) if "runs" in raw["title"] else raw["title"]["simpleText"]
+        self.url:str = "https://youtube.com" + raw["endpoint"]["commandMetadata"]["webCommandMetadata"]["url"]
+        self.browse_id:str = raw["endpoint"]["browseEndpoint"]["browseId"]
+    @property
+    def thumbnails(self)->ThumbnailQuery:
+        return get_thumbnails_from_raw(self.raw["thumbnail"]["thumbnails"])
+    def __repr__(self)->str:
+        return f"<VideoCategory {self.title}/>"
 class Video(BaseYoutubePlayer):
     def __init__(self,url:str=None,id:str=None):
         """
