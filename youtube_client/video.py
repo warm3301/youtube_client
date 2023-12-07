@@ -113,11 +113,20 @@ class Video(BaseYoutubePlayer):
             "results"]["results"]["contents"][0]["videoPrimaryInfoRenderer"]
     @cached_property #TODO to list
     def tags(self)->Optional[str]:
-        try:
+        try:#have url
             return " ".join([x["text"] for x in self._primary_renderer["superTitleLink"]["runs"]])
-        except:
+        except KeyError:
             return None
-    
+    @property
+    def is_geotag(self)->bool:
+        try:
+            self._primary_renderer["superTitleIcon"]["iconType"] == "LOCATION_PIN"
+        except KeyError:
+            return False
+    # @property
+    # def geotag(self)->Optional[str]:
+    #     try:
+    #         return self._primary_renderer[]
 
     @property
     def _rating_buttons(self)->Optional[dict]:#TODO sometimees not work
