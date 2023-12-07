@@ -18,7 +18,6 @@ from . import innertube
 from .query import StreamQuery,ThumbnailQuery,get_thumbnails_from_raw,CaptionQueryFirst
 
 from functools import cached_property
-from .music_metadata import MusicMetadata
 _js = None
 _js_url = None
 class AudioTrack:
@@ -255,40 +254,6 @@ class BaseYoutubePlayer(BaseYoutube):
             if x["engagementPanelSectionListRenderer"]["panelIdentifier"] == panel_id:
                 return x
         return None
-    @cached_property
-    def music_metadata(self):
-        hcvr = None
-        for x in self._find_engagement_panel("engagement-panel-structured-description")["engagementPanelSectionListRenderer"][
-            "content"]["structuredDescriptionContentRenderer"]["items"]:
-            if "horizontalCardListRenderer" in x:
-                hcvr = x["horizontalCardListRenderer"]
-                break
-        if hcvr == None or len(hcvr["cards"])==0 or "macroMarkersListItemRenderer" in hcvr["cards"][0]:
-            return None
-        _ = hcvr["header"]["richListHeaderRenderer"]["title"]["simpleText"]
-        count = None
-        try:
-            count = hcvr["header"]["richListHeaderRenderer"]["subtitle"]["simpleText"]
-        except KeyError:
-            pass
-        card  =hcvr["cards"][0]["videoAttributeViewModel"]
-        
-        orientation = card["orientation"]
-        sizingRule = card["sizingRule"]
-        title = card["title"]
-        subtitle = card["subtitle"]
-        secondary_subtitle = card["secondarySubtitle"]["content"]
-        thumbnail = Thumbnail(card["image"]["sources"][0]["url"])
-        owner_id = hcvr["footerButton"]["buttonViewModel"]["onTap"]["innertubeCommand"]["browseEndpoint"]["browseId"]          
-        #footerButton.buttonViewModel.titleFormatted.content 'music'
-        owner_url = hcvr["footerButton"]["buttonViewModel"]["onTap"]["innertubeCommand"]["commandMetadata"]["webCommandMetadata"]["url"]
-
-        all_info = None
-        dmessages = card["overflowMenuOnTap"]["innertubeCommand"]["confirmDialogEndpoint"]["content"][
-            "confirmDialogRenderer"]["dialogMessages"][0]
-        if dmessages and len(dmessages)>0:
-            all_info = " ".join([x["text"] for x in  dmessages['runs']])
-        return MusicMetadata(title,orientation,sizingRule,subtitle,secondary_subtitle,thumbnail,all_info,owner_id)
     
     @cached_property
     def other_audio_tracks_count(self)->int:
