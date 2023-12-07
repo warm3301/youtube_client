@@ -296,7 +296,39 @@ class Video(BaseYoutubePlayer):
             else:
                 NotImplemented
         return cards
-        
+    @property
+    def creative_commons(self)->Optional[Tuple[str,str]]:
+        """Return tuple info about licence and url to full information
+        If licence of video is not creative commons function return None
+
+        Returns:
+            Optional[Tuple[str,str]]: first is text, second is url. 
+        """        
+        mrkr = self.initial_data["contents"]["twoColumnWatchNextResults"]["results"]["results"]["contents"][1]["videoSecondaryInfoRenderer"][
+            "metadataRowContainer"]["metadataRowContainerRenderer"]
+        if not "rows" in mrkr:
+            return None
+        for row in mrkr["rows"]:
+            try:
+                value = row["metadataRowRenderer"]["contents"][0]["runs"][0]
+                return (value["text"],value["navigationEndpoint"][
+                "urlEndpoint"]["url"])
+            except KeyError:
+                return None
+    @property
+    def video_category(self)->List[VideoCategory]:
+        categories = []
+        mrkr = self.initial_data["contents"]["twoColumnWatchNextResults"]["results"]["results"]["contents"][1]["videoSecondaryInfoRenderer"][
+            "metadataRowContainer"]["metadataRowContainerRenderer"]
+        if not "rows" in mrkr:
+            return categories
+        mrkr = mrkr["rows"][0]
+        if not "richMetadataRowRenderer" in mrkr:
+            return categories
+        for raw in mrkr["richMetadataRowRenderer"]["contents"]:
+            categories.append(VideoCategory(raw["richMetadataRenderer"]))
+        return categories
+
     @cached_property
     def explicit_lyrics(self)->Optional[str]:
         try:
