@@ -16,7 +16,7 @@ This is the same library as pytube but with slightly more functionality.
 ### Simple example to download
 ```
 from youtube_client import Video
-from youtube_client.downloaders import SingleDownlower
+from youtube_client.downloaders.raw_downloader import SingleDownlower
 
 v = Video(url="https://youtube.com/watch?v=jNQXAC9IVRw")
 print(v.title)

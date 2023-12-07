@@ -296,16 +296,17 @@ class Video(BaseYoutubePlayer):
             else:
                 NotImplemented
         return cards
+        
     @cached_property
-    def explicit_lyrics(self)->bool:#TODO in other langs
+    def explicit_lyrics(self)->Optional[str]:
         try:
             return self.initial_data["contents"]["twoColumnWatchNextResults"]["results"]["results"]["contents"][1][
                 "videoSecondaryInfoRenderer"]["metadataRowContainer"]["metadataRowContainerRenderer"][
-                    "rows"][0]["metadataRowRenderer"]["contents"]["0"]["simpleText"] == "Explicit lyrics"
+                    "rows"][0]["metadataRowRenderer"]["contents"]["0"]["simpleText"] #"Explicit lyrics"
         except KeyError:
-            return False
+            return None
     @cached_property
-    def attributed_description(self)->Optional[str]:#TODO what is it
+    def attributed_description(self)->Optional[str]:
         try:
             return self.initial_data["contents"]["twoColumnWatchNextResults"]["results"]["results"]["contents"][1][
                 "videoSecondaryInfoRenderer"]["attributedDescription"]["content"]
