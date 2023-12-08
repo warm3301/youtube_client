@@ -21,6 +21,42 @@ def get_embed_url(id:str)->str:
     return f"https://www.youtube.com/embed/{id}"
 def get_video_object_from_short(url:str)->"Video":
     return Video(id=extract.short_id(url))
+class ShortUseVideo:
+    def __init__(self,raw):
+        self.raw = raw
+    @property
+    def title(self)->str:
+        try:
+            try:
+                return " ".join([x["text"] for x in self.raw["title"]["runs"]])
+            except KeyError:
+                return self.raw["title"]["simpleText"]
+        except KeyError:
+            return self.raw["headline"]["simpleText"]
+    @property
+    def thumbnails(self)->ThumbnailQuery:
+        return get_thumbnails_from_raw(self.raw["thumbnail"]["thumbnails"])
+    @property
+    def reelThumbnails(self)->Thumbnail:
+        return get_thumbnails_from_raw(self.raw["navigationEndpoint"]["reelWatchEndpoint"]["thumbnail"]["thumbnails"])
+    @property
+    def view_count(self)->str:
+        return self.raw["viewCountText"]["simpleText"]
+    @property
+    def id(self)->str:
+        return self.raw["navigationEndpoint"]["reelWatchEndpoint"]["videoId"]
+    @property
+    def url(self)->str:
+        return "https://youtube.com" + self.raw["navigationEndpoint"]["commandMetadata"]["webCommandMetadata"]["url"]
+    @property
+    def video_type(self)->Optional[str]:
+        try:
+            return self.raw["videoType"]
+        except KeyError:
+            return None
+    def __repr__(self)->str:
+        return f"<Short what use video  \"{self.title}\"/>"
+    #lenght via accessibility accessibilityData label
 class VideoCategory:
     def __init__(self,raw):
         self.raw = raw
@@ -399,3 +435,21 @@ class Video(BaseYoutubePlayer):
         if dmessages and len(dmessages)>0:
             all_info = " ".join([x["text"] for x in  dmessages['runs']])
         return MusicMetadata(title,orientation,sizingRule,subtitle,secondary_subtitle,thumbnail,all_info,owner_id)
+    @property
+    def shorts_use_video(self)->List[ShortUseVideo]:#In android continuation and count of all
+        res = []
+
+        #find reelShelfRenderer
+        rsr = None
+        for x in self._find_engagement_panel("engagement-panel-structured-description")["engagementPanelSectionListRenderer"][
+            "content"]["structuredDescriptionContentRenderer"]["items"]:
+            if "reelShelfRenderer" in x:
+                rsr = x["reelShelfRenderer"]
+                break
+        if rsr == None:
+            return res
+        for x in rsr["items"]:
+            res.append(ShortUseVideo(x["reelItemRenderer"]))
+        
+        return res
+    #can get about channel in engagement-panel-structured-description  videoDescriptionInfocardsSectionRenderer.creatorAboutButton

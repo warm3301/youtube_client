@@ -1,3 +1,4 @@
+from typing import Optional
 from .extract import video_id
 from .base_youtube_player import BaseYoutubePlayer
 from . import video
@@ -32,6 +33,20 @@ class Short(video.Video):
     def short_initial_data(self)->dict:
         return extract.initial_data(self.short_html)
     @property
-    def likes_count_int(self)->int:
-        return self.short_initial_data["overlay"]["reelPlayerOverlayRenderer"]["likeButton"]["likeButtonRenderer"]["likeCount"]
-
+    def likes_count_int(self)->Optional[int]:
+        val = self.short_initial_data["overlay"]["reelPlayerOverlayRenderer"]["likeButton"]["likeButtonRenderer"]
+        if "likeCount" in val:
+            return val["likeCount"]
+        return None
+    @property
+    def comments_count_more_concrete(self)->Optional[str]:
+        return self.short_initial_data["overlay"]["reelPlayerOverlayRenderer"]["viewCommentsButton"]["buttonRenderer"]["accessibility"]["label"]
+    @property
+    def pivot_thumbnails(self)->str:
+        """source audio"""
+        return self.short_initial_data["overlay"]["reelPlayerOverlayRenderer"]["pivotButton"]["pivotButtonRenderer"]["thumbnail"]["thumbnails"]
+    @property
+    def pivot_other_url(self)->str:
+        """other shorts with this audui"""
+        return self.short_initial_data["overlay"]["reelPlayerOverlayRenderer"]["pivotButton"]["pivotButtonRenderer"]["onClickCommand"][
+            "commandMetadata"]["webCommandMetadata"]["url"]
