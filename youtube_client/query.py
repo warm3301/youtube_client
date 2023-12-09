@@ -257,10 +257,22 @@ class StreamQuery(Sequence):
         )
     def sort_by_filesize(self,reverse:bool=False)->"StreamQuery":
         return self.order_by("filesize_approx",reverse=reverse)
+
+    def sort_by_audio_sample_rate(self,reverse:bool=False)->"StreamQuery":
+        return self.filter(contains_audio=True).order_by("audio_sample_rate",reverse)
+    def sort_by_bitrate(self,reverse:bool=False)->"StreamQuery":
+        return self.order_by("bitrate",reverse)
+    def get_by_itag(self,itag:int)->Stream:
+        return self._filter(lambda x: x.itag == itag)
+    def get_by_audio_codec(self,codec:str)->"StreamQuery":
+        return self.filter(audio_codec=codec)
+
     def get_progressive(self)->"StreamQuery":
         return self.filter(progressive=True)
     def get_adaptive(self)->"StreamQuery":
         return self.filter(adaptive=True)
+    def get_by_video_codec(self,codec:str)->"StreamQuery":
+        return self.filter(video_codec=codec)
     def get_by_resolution(self,resolution)->"StreamQuery":
         return self.filter(resolution=resolution)
     def get_lowest_resolution(self)->Stream:
@@ -285,11 +297,11 @@ class StreamQuery(Sequence):
         ln = name.lower()
         return self._filter([lambda x: contains_audio_track_info and audio_track_info.name.lower()==ln])
     def max_filesize(self,filesize:str):...#TODO max size
-    def get_by_ext(self,ext:str):
+    def get_by_ext(self,ext:str)->"StreamQuery":
         return self.filter(subtype=ext)
-    def hdr(self,hdr=True):
+    def hdr(self,hdr=True)->"StreamQuery":
         return self._filter([lambda s: s.is_hdr == hdr])
-    def threeD(self,threeD=True):
+    def threeD(self,threeD=True)->"StreamQuery":
         return self._filter([lambda s:s.is_3d == threeD])
 
     @property
@@ -457,27 +469,3 @@ class CaptionQueryFirst(CaptionQuery):
         if len(val.captions)>0:return val.first
         return None
     
-# class CommentQuery(Query):
-#     """local sort on likes,replies or filter"""
-#     def __init__(self,comments):
-#         super().__init__(comments)
-# class PostQuery(Query):
-#     """local sort on likes,replies, or filter"""
-#     def __init__(self,posts):
-#         super().__init__(posts)
-# class VideoQuery(Query):
-#     """local filter and sort on lenght,title, channel owners. generate on channel or playlist"""
-#     def __init__(self,videos):
-#         super().__init__(videos)
-# class ChannelQuery(Query):
-#     """local filter and sort on videos count title and other. generate on channel obj"""
-#     def __init__(self,channels):
-#         super().__init__(channels)
-# class ShortQuery(Query):
-#     """local filter and sort on title lenght and other. generete on channel obj"""
-#     def __init__(self,shorts):
-#         super().__init__(shorts)
-# class LiveQuery(Query):
-#     """local filter and sort"""
-#     def __init__(self,lives):
-#         super().__init__(lives)
