@@ -97,9 +97,6 @@ class LiveChat:
         self._continuation = continuation
     def get_responce(self)->LiveChatResponce:
         res = LiveChatResponce(innertube.default_obj.live_chat(self._continuation))
-        import json
-        with open("jsons/live_chat_continuation.json","w") as file:
-            file.write(json.dumps(res.raw))
         self._continuation = res._continuation_token
         return res
 class Live(Video):
