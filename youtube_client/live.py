@@ -3,7 +3,7 @@ from typing import Iterable,List,Tuple,Any,Union,Dict
 from . import request
 from .video import Video
 from . import innertube
-
+from .query import get_thumbnails_from_raw,ThumbnailQuery
 @dataclass
 class LiveMetadata:
     title:str=None
@@ -47,10 +47,61 @@ class LiveMetadataUpdater:
             updated_data_class.update(res)
         return res
 
-
 class LiveChatMessage:
     def __init__(self,raw):
-        self.raw =raw    
+        self.raw = raw
+    @property
+    def id(self)->str:
+        return self.raw["id"]
+    @property
+    def timestep_usec(self)->str:
+        return self.raw["timestampUsec"]
+    @property
+    def message(self)->str:
+        try:
+            return "".join(x["text"] if "text" in x else x["emoji"]["emojiId"] for x in self.raw["message"]["runs"])
+        except KeyError:
+            return self.raw["message"]
+    @property
+    def author_name(self)->str:
+        return self.raw["authorName"]["simpleText"]
+    @property
+    def author_id(self)->str:
+        return self.raw["authorExternalChannelId"]
+    @property
+    def thumbnails(self)->ThumbnailQuery:
+        return get_thumbnails_from_raw(self.raw["authorPhoto"]["thumbnails"])
+    def __repr__(self)->str:
+        return f"<LiveChatMessage \"{self.message}\" />"
+class LiveChatResponce:
+    def __init__(self,raw):
+        self.raw =raw 
+        self._continuation_token:str = raw["continuationContents"]["liveChatContinuation"]["continuations"][0]["invalidationContinuationData"][
+            "continuation"]
+    @property
+    def messages(self)->List[LiveChatMessage]:
+        res = []
+        actions = self.raw["continuationContents"]["liveChatContinuation"]
+        if not "actions" in actions:
+            return res
+        actions = actions["actions"]
+        for message_raw in actions:
+            if "addChatItemAction" in message_raw:
+                message_raw = message_raw["addChatItemAction"]["item"]
+                if "liveChatTextMessageRenderer" in message_raw:
+                    message_raw = message_raw["liveChatTextMessageRenderer"] #liveChatViewerEngagementMessageRenderer
+                    res.append(LiveChatMessage(message_raw))
+        return res
+class LiveChat:
+    def __init__(self,continuation:str):
+        self._continuation = continuation
+    def get_responce(self)->LiveChatResponce:
+        res = LiveChatResponce(innertube.default_obj.live_chat(self._continuation))
+        import json
+        with open("jsons/live_chat_continuation.json","w") as file:
+            file.write(json.dumps(res.raw))
+        self._continuation = res._continuation_token
+        return res
 class Live(Video):
     def __init__(self,url:str=None,id:str=None):
         """
@@ -120,6 +171,11 @@ class Live(Video):
         return self.initial_data["contents"]["twoColumnWatchNextResults"]["conversationBar"]["liveChatRenderer"][
             "header"]["liveChatHeaderRenderer"]["viewSelector"]["sortFilterSubMenuRenderer"]["subMenuItems"][index][
             "continuation"]["reloadContinuationData"]["continuation"]
+    
     @property
     def metadata_updater(self)->LiveMetadataUpdater:
         return LiveMetadataUpdater(self.id)
+    def get_live_chat(self,index=0)->LiveChat:
+        """index=0 - top chat
+        index=1 - live chat"""
+        return LiveChat(self._get_live_chat_continuation(0))
