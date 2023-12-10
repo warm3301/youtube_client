@@ -349,7 +349,22 @@ class InnerTube:
             data['continuation'] = continuation
         data.update(self.base_data)
         return self._call_api(endpoint, query, data)
-
+    def live_chat(self,continuation:str):
+        endpoint = f'{self.base_url}/live_chat/get_live_chat'
+        data = {'continuation':continuation}
+        data.update(self.base_data)
+        return self._call_api(endpoint,self.base_params,data)
+    def update_metadata(self,video_id:str=None,continuation:str=None):
+        if video_id is None and continuation is None:
+            raise Exception("requere video id or continuation token. all of this is None")
+        endpoint = f'{self.base_url}/updated_metadata'
+        data = {}
+        if video_id:
+            data["videoId"] = video_id
+        if continuation:
+            data["continuation"] = continuation
+        data.update(self.base_data)
+        return self._call_api(endpoint,self.base_params,data)
     def verify_age(self, video_id):
         """Make a request to the age_verify endpoint.
 

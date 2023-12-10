@@ -19,7 +19,7 @@ class FFMpegDownloader(VideoDownloader):
     ):
         self.on_progress = on_progress
         super().__init__(stream=streams,on_complete=on_complete,default_title=default_title,output_path=output_path,ext_in_path=ext_in_path,skip_existing=skip_existing)
-        self.ffdownloader = FFmpeg().option("y").option("threads",2)#TODO other concatenator. add metadata,subtitles
+        self.ffdownloader = FFmpeg().option("y").option("threads",2)#TODO other concatenator. add metadata,subtitles, y -rewrite, n - exit, hwaccel auto
         params = {}
         if time_from:
             params["ss"]=time_from

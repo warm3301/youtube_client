@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional,Iterable,List
 from .thumbnail import Thumbnail
 from. query import get_thumbnails_from_raw,ThumbnailQuery
 from . import innertube
@@ -207,7 +207,7 @@ class CommentThread(Comment):
             pass
         return reply_count
 
-    def get_replies_array_next(self) ->[Comment]:
+    def get_replies_array_next(self) ->List[Comment]:
         if self.base_continuation == None:
             return []
         comments = []
@@ -288,7 +288,7 @@ class CommentsResponce:
             else:#TOOD timeline sponsors
                 raise Exception(f"sort by {sort_change} not exist. Only 'new' and 'top'")
     @property
-    def content(self)->[CommentThread]:
+    def content(self)->List[CommentThread]:
         comments = []
         for x in self._raw_comments:
             comments.append(CommentThread(x))
@@ -300,7 +300,7 @@ class CommentsResponce:
             return res["continuationItems"][0]["commentsHeaderRenderer"]
         return None
     @property
-    def sort_types(self)->[CommentSortType]:
+    def sort_types(self)->List[CommentSortType]:
         if self._comment_sort_types:
             return self._comment_sort_types
         renderer = self._comment_renderer
@@ -389,7 +389,7 @@ class CommentGetter:
         cr = CommentsResponce(response,sort_by)
         self.continuation:str = cr._continuation_token
         return cr
-    def get_all_comments(self):
+    def get_all_comments(self)->Iterable[CommentsResponce]:
         while True:
             if self.continuation == None:
                 break

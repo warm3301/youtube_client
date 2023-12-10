@@ -6,6 +6,7 @@ youtube_client github:
 from .video import Video
 from .short import Short
 from .live import Live
+from .live import LiveMetadata
 from .channel import Channel
 from .playlist import Playlist
 
